@@ -16,15 +16,18 @@ namespace Books.Application.Service
         private readonly IBookRepository _repository;
         private readonly IMapper _mapper;
         private readonly ICachingServices _cachingServices;
+        private readonly IQueueService _queueService;
         private readonly string _cachingKey;
 
-        public BookService(IBookRepository repository, IMapper mapper, ICachingServices cachingServices)
+        public BookService(IBookRepository repository, IMapper mapper, ICachingServices cachingServices
+            , IQueueService queueService)
         {
             _repository = repository;
             _mapper = mapper;
             _cachingServices = cachingServices;
 
             _cachingKey = "Books";
+            _queueService = queueService;
         }
 
         public async Task<int?> CreateBookAsync(BookCreateDto dto, CancellationToken cancellationToken)
@@ -33,6 +36,7 @@ namespace Books.Application.Service
             {
                 await _cachingServices.RemoveAsync(_cachingKey, cancellationToken);
                 BookEntity book = _mapper.Map<BookEntity>(dto);
+                await _queueService.PublishAsync<BookEntity>("Book", book);
                 return await _repository.AddBookAsync(book, dto.AuthersId);
             }
             catch (Exception ex)

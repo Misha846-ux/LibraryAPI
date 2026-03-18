@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Books.Domain.Entities;
+using Books.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Books.Infrastructure.Data
@@ -40,7 +41,15 @@ namespace Books.Infrastructure.Data
                     .Property(b => b.CreatedAt)
                     .HasDefaultValueSql("SYSDATETIME()");
             }
-           
+
+            modelBuilder.Entity<UserEntity>()
+               .Property(u => u.Role)
+               .HasConversion<int>();
+            modelBuilder.Entity<UserEntity>()
+                .HasCheckConstraint(
+                    "CK_User_Role",
+                    $"Role IN ({(int)UserRole.User}, {(int)UserRole.Moderator}, {(int)UserRole.Admin})");
+
         }
     }
 }

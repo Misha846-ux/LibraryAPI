@@ -101,10 +101,20 @@ namespace Books.Api
             builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
             //=============================Redis===========================
+            //=============================Redis===========================
             builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
             {
-                var config = builder.Configuration.GetConnectionString("Redis");
-                return ConnectionMultiplexer.Connect(config);
+                var serviceName = configuration["CachingSettings:ServiceName"];
+
+                if (!string.IsNullOrEmpty(serviceName) &&
+                    string.Equals(serviceName, "Radis", StringComparison.OrdinalIgnoreCase))
+                {
+                    var redisConfig = configuration.GetConnectionString("Redis");
+                    return ConnectionMultiplexer.Connect(redisConfig);
+                }
+
+                // Если ServiceName != "Radis", Redis не подключаем
+                return null;
             });
 
             builder.Services.AddScoped<IBookService, BookService>();
