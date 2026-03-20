@@ -14,6 +14,9 @@ namespace Books.Application.Interfaces.Services
         Task<UserReadDto?> GetUserByEmailAsync(string email);
         Task<ICollection<UserReadDto>> GetAllUsersAsync();
         Task<RefreshTokenEntity> LoginAsync(UserLoginDto dto, string ipAddress);
+        Task<string> CreateRecoveryTokenAsync(string userEmail);
+        Task<RefreshTokenEntity> LoginWithRecoveryTokenAsync(UserLoginDto dto, string ipAddress);
+        Task UpdatePasswordAsync(string email, string newPassword);
 
         Task<string> RefreshAsync(string token);
         Task<bool> LogOutAsync(string token);
