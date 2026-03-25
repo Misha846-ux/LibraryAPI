@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Books.Domain.Entities;
 using Books.Domain.Enums;
+using Books.Infrastructure.Configuration.EntitiesConfigurations;
 using Microsoft.EntityFrameworkCore;
 
 namespace Books.Infrastructure.Data
@@ -27,29 +28,11 @@ namespace Books.Infrastructure.Data
         {
             modelBuilder.Entity<UserEntity>().HasIndex(u => u.Email).IsUnique();
 
-            if (Database.IsMySql())
-            {
-                modelBuilder.Entity<BookEntity>()
-                .Property(b => b.CreatedAt)
-                .HasColumnType("datetime(6)")        // точность микросекунд
-                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
-                .ValueGeneratedOnAdd();
-            }
-            else if (Database.IsSqlServer())
-            {
-                modelBuilder.Entity<BookEntity>()
-                    .Property(b => b.CreatedAt)
-                    .HasDefaultValueSql("SYSDATETIME()");
-            }
-
-            modelBuilder.Entity<UserEntity>()
-               .Property(u => u.Role)
-               .HasConversion<int>();
-            modelBuilder.Entity<UserEntity>()
-                .HasCheckConstraint(
-                    "CK_User_Role",
-                    $"Role IN ({(int)UserRole.User}, {(int)UserRole.Moderator}, {(int)UserRole.Admin})");
-
+            modelBuilder.ApplyConfiguration(new AuthorEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new BookEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new GenreEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new UserEntityConfiguration());
+            modelBuilder.ApplyConfiguration(new RefreshTokenEntityConfiguration());
         }
     }
 }
