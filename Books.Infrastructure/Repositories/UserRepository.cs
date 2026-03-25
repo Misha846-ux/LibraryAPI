@@ -64,5 +64,10 @@ namespace Books.Infrastructure.Repositories
                 return null;
             }
         }
+
+        public async Task SaveChengesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
     }
 }

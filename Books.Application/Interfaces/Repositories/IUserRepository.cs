@@ -12,5 +12,6 @@ namespace Books.Application.Interfaces.Repositories
         Task<ICollection<UserEntity>> GetAllUsersAsync();
         Task<UserEntity> GetUserByEmailAsync(string email);
         Task<string?> AddUserAsync(UserEntity user, string password);
+        Task SaveChengesAsync();
     }
 }

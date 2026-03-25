@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -28,6 +29,21 @@ namespace Books.Application.Service
             this._hashHelper = hashHelper;
             this._refreshTokenRepository = refreshTokenRepository;
         }
+
+        public async Task<string> CreateRecoveryTokenAsync(string userEmail)
+        {
+            UserEntity user = await _repository.GetUserByEmailAsync(userEmail.Trim());
+            if (user == null)
+            {
+                throw new Exception("User not found");
+            }
+            string recoveryToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+            user.RecoveryTokenHash = _hashHelper.HashPassword(recoveryToken);
+            user.RecoveryTokenLiveTime = DateTime.UtcNow.AddMinutes(5);
+            await _repository.SaveChengesAsync();
+            return recoveryToken;
+        }
+
         public async Task<string?> CreateUserAsync(UserCreateDto dto)
         {
             try
@@ -97,6 +113,36 @@ namespace Books.Application.Service
             return token;
         }
 
+        public async Task<RefreshTokenEntity> LoginWithRecoveryTokenAsync(UserLoginDto dto, string ipAddress)
+        {
+            var user = await _repository.GetUserByEmailAsync(dto.Email.Trim());
+            if (user == null)
+            {
+                throw new UnauthorizedAccessException("Невірний email або recovery token");
+            }
+
+            // Перевірка валідності пароля
+            if (!_hashHelper.Check(dto.Password, user.RecoveryTokenHash))
+            {
+                throw new UnauthorizedAccessException("Неверный логин или recovery token");
+
+            }
+            if (user.RecoveryTokenLiveTime >= DateTime.UtcNow)
+            {
+                throw new UnauthorizedAccessException("Время жизни recovery token истекло");
+
+            }
+            user.RecoveryTokenLiveTime = DateTime.UtcNow;
+            user.RecoveryTokenHash = null;
+            await _repository.SaveChengesAsync();
+
+            var token = _jwtService.GenerateRefreshToken(ipAddress, user.Id);
+            await _refreshTokenRepository.AddRefreshTokenAsync(token);
+
+            // Повертаємо токен
+            return token;
+        }
+
         public async Task<bool> LogOutAsync(string token)
         {
             RefreshTokenEntity tokenEntity = await _refreshTokenRepository.GetRefreshTokenByTokenAsync(token);
@@ -127,6 +173,17 @@ namespace Books.Application.Service
 
             return _jwtService.GenerateAccessToken(dto, tokenEntity.User.Role.ToString());
 
+        }
+
+        public async Task UpdatePasswordAsync(string email, string newPassword)
+        {
+            UserEntity user = await _repository.GetUserByEmailAsync(email);
+            if (user == null)
+            {
+                throw new Exception("User not found");
+            }
+            user.PasswordHash = _hashHelper.HashPassword(newPassword);
+            await _repository.SaveChengesAsync();
         }
     }
 }
